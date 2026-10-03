@@ -7,7 +7,6 @@ from settings.setting import DEBUG, HOST, PORT
 from middleware.middleware import setup_middleware
 
 from api.router import router as api_router
-from web.router import router as web_router
 
 from redis_client.redis_client import init_redis_pool, close_resis_pool
 from database.first_init import first_init
@@ -38,7 +37,6 @@ setup_middleware(app)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(api_router)
-app.include_router(web_router)
 
 
 
