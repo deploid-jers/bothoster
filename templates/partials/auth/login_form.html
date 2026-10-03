@@ -1,4 +1,11 @@
 <form hx-post="/login" hx-target="this" hx-swap="outerHTML">
+    <h2>Вход в систему</h2>
+
+    {% if success_message %}
+        <div class="alert-success">{{ success_message }}</div>
+    {% endif %}
+
+
     {% if error %}
         <div class="alert alert-danger py-2 mb-3 fs-6" role="alert">
             {{ error }}

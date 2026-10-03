@@ -25,6 +25,21 @@ async def auth_page(request: Request):
     return await render_template("pages/auth.html", request=request)
 
 
+@router.get("/login-form", response_class=HTMLResponse)
+async def get_login_form(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/auth/login_form.html"
+    )
+
+@router.get("/register-form", response_class=HTMLResponse)
+async def get_register_form(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/auth/register_form.html"
+    )
+
+
 @router.post("/login", response_class=HTMLResponse)
 async def login(
     request: Request,
@@ -66,14 +81,16 @@ async def register_web(
             status_code=400
         )
 
-    # TODO Тута еще проверяем чтобы username и email не повторялся
-
     try:
         await register_user_service(username, email, password, db)
 
-        response = HTMLResponse(content="")
-        response.headers["HX-Redirect"] = "/auth?registered=true" # TODO сделать страничку для успешной регистрации
-        return response
+        return templates.TemplateResponse(
+            request=request,
+            name="partials/auth/login_form.html",
+            context={
+                "success_message": "Вы успешно зарегистрировались! Теперь войдите в аккаунт."
+            }
+        )
 
     except UserAlreadyExistsException as e:
         return templates.TemplateResponse(

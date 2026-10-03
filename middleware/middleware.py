@@ -8,6 +8,22 @@ from fastapi.middleware.gzip import GZipMiddleware
 
 from settings.setting import ALLOWED_ORIGINS, ALLOWED_HOSTS
 
+import logging
+import time
+import uuid
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+
+logging.basicConfig(
+    level=logging.INFO, 
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(),    
+        logging.FileHandler("logging/app.log", encoding="utf-8")
+    ]
+)
+
 logger = logging.getLogger("app")
 
 

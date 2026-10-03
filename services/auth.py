@@ -101,10 +101,14 @@ async def register_user_service(
     email = str(email).strip()
     password = str(password).strip()
 
-    existing_user = await Users.get(db, username=username)
+    existing_user_by_username = await Users.get(db, username=username)
+    existing_user_by_email = await Users.get(db, email=email)
 
-    if existing_user:
-        raise UserAlreadyExistsException("Пользователь уже зарегистрирован")
+    if existing_user_by_username:
+        raise UserAlreadyExistsException("Пользователь с даным username уже зарегистрирован")
+
+    if existing_user_by_email:
+        raise UserAlreadyExistsException("Пользователь с данным email уже зарегистрирован")
 
     try:
         new_user = await Users.put(db, username=username, email=email, password_hash=hash_password(password))
