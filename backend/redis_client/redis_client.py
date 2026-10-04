@@ -16,6 +16,27 @@ async def init_redis_pool() -> None:
     )
 
 
+
+async def check_connection() -> None:
+    """Проверка подлкючения к Redis"""
+    try:
+        global redis_client
+
+        async with redis_client:
+            if not await redis_client.ping():
+                raise RuntimeError("Ошибка подключения")
+
+    except aioredis.AuthenticationError:
+        raise RuntimeError(" Ошибка: Неверный пароль (AuthenticationError).")
+        
+    except aioredis.ConnectionError as e:
+        raise RuntimeError(f" Ошибка подключения: Redis недоступен.\nДетали: {e}")
+        
+    except Exception as e:
+        raise RuntimeError(f" Произошла непредвиденная ошибка: {e}")
+
+
+
 async def close_resis_pool() -> None:
     global redis_client
     if redis_client is not None:

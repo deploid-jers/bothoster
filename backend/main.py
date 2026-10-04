@@ -3,19 +3,22 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-from settings.setting import DEBUG, HOST, PORT
+from settings.setting import DEBUG, HOST, PORT, DOMAIN_NAME
 from middleware.middleware import setup_middleware
 
 from api.router import router as api_router
 
-from redis_client.redis_client import init_redis_pool, close_resis_pool
+from redis_client.redis_client import init_redis_pool, close_resis_pool, check_connection
 from database.first_init import first_init
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_redis_pool()
+    await check_connection()
     print("Redis подключение инициализировано")
     await first_init()
+
+    print(f"Сервер доступен по адресу: http://{DOMAIN_NAME}:{PORT} или http://{HOST}:{PORT}")
 
     yield
 

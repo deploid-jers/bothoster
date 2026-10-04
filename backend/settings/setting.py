@@ -13,6 +13,8 @@ load_dotenv(str(BASE_DIR / ".env"))
 
 DEBUG = bool(os.getenv("DEBUG")) or True
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+DOMAIN_NAME = os.getenv("DOMAIN_NAME") or "myproject"
 HOST = os.getenv("HOST") or "0.0.0.0"
 PORT = int(os.getenv("PORT")) or 8000
 
@@ -25,14 +27,14 @@ REDIS_PORT = int(os.getenv('REDIS_PORT'))
 # ====
 
 ALLOWED_ORIGINS = [
-    "https://bothoster.com",
-    "https://admin.bothoster.com",
+    f"https://{DOMAIN_NAME}.com",
+    f"https://admin.{DOMAIN_NAME}.com",
 ]
 
 ALLOWED_HOSTS = [
-    "bothoster.com",
-    "admin.bothoster.com",
-    "api.bothoster.com"
+    f"{DOMAIN_NAME}.com",
+    f"admin.{DOMAIN_NAME}.com",
+    f"api.{DOMAIN_NAME}.com"
 ]
 
 

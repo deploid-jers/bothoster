@@ -53,9 +53,9 @@ async def login_user(
     data: LoginRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    redis: Redis = Depends(get_redis)
+    redis: Redis = Depends(get_redis) # Добавить RateLimit 
 ):
-    try:
+    try: # TODO Добавить get_current_user на случай если пользователь уже залогинен
         user = await login_user_service(data.login, data.password, response, db, redis)
         return LoginResponse(username=user.username, email=user.email)
     except InvalidDataForLoginException as e:
