@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from settings.setting import ALLOWED_ORIGINS, ALLOWED_HOSTS
+from settings.pathes import BASE_DIR
 
 import logging
 import time
@@ -19,7 +20,7 @@ logging.basicConfig(
     level=logging.INFO, 
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
-        logging.FileHandler("logging/app.log", encoding="utf-8")
+        logging.FileHandler(f"{str(BASE_DIR)}/logging/app.log", encoding="utf-8")
     ]
 )
 

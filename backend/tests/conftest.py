@@ -16,10 +16,10 @@ from redis.asyncio import Redis
 # Добавляем корневую папку проекта в sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from backend.main import app
-from backend.database.base import Base
-from backend.database.connection import get_db
-from backend.redis_client.redis_client import get_redis
+from main import app
+from database.base import Base
+from database.connection import get_db
+from redis_client.redis_client import get_redis
 
 
 

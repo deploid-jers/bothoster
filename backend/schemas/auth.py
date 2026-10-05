@@ -6,7 +6,7 @@ class RegistrationRequest(BaseModel):
     password: str = Field(min_length=8, max_length=255)
 
 class LoginRequest(BaseModel):
-    login: str
+    login: str = Field(max_length=64)
     password: str = Field(min_length=8, max_length=255)
 
 class VeriryEmailRequest(BaseModel):

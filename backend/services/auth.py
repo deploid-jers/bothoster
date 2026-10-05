@@ -1,6 +1,7 @@
 import os, re, json
 from fastapi_mail import FastMail, MessageSchema, MessageType
-from fastapi import HTTPException, status, Response
+from fastapi import HTTPException, status, Response, Request
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio import Redis
@@ -8,11 +9,13 @@ from redis.asyncio import Redis
 from database.models.users import Users
 from settings.setting import conf
 
+from api.dependencies import get_current_user, rate_limit_hit
+from utils.auth import login_key
 from core.exceptions import *
 from schemas.auth import *
 from database.models.users import Users
-from core.security import hash_password, verify_password
-from core.sessions import generate_session
+from core.security import hash_password, verify_password, DUMMY_HASH
+from core.sessions import generate_session, create_session
 from settings.setting import SESSION_TTL, DEBUG
 
 async def auth_by_username_or_email(db, data):
@@ -50,43 +53,50 @@ async def send_verify_mail(email):
                 detail="Server error"
                 )
 
+LOGIN_LIMIT_PER_USER = 10
+LOGIN_WINDOW_PER_USER = 600
 
 async def login_user_service(
         login: str,
         password: str,
         response: Response,
         db: AsyncSession,
-        redis: Redis
+        redis: Redis,
+        request: Request
 ):
     login = str(login).strip()
     password = str(password).strip()
 
+    key = login_key(login)
+    login_attempts, ttl = await rate_limit_hit(redis, key, LOGIN_WINDOW_PER_USER)
+    if login_attempts > LOGIN_LIMIT_PER_USER:
+        raise RateLimitExceeded(message="Many login attemptions", retry_after=ttl)
+
     existing_user = await auth_by_username_or_email(db, login)
+    password_hash = existing_user.password_hash if existing_user else DUMMY_HASH
+    check_password = await run_in_threadpool(verify_password, password, password_hash)
+    if existing_user is None or not check_password:
+        raise InvalidDataForLoginException("Неправильные логин или пароль")
 
-    if existing_user is None or not verify_password(password, existing_user.password_hash):
-       raise InvalidDataForLoginException("Неправильные логин или пароль")
+    try:
+        await redis.delete(key)
+    except:
+        raise ServerBadGetwayException("Redis error!")
 
-    session_id = await generate_session()
+    old_session_id = request.cookies.get("session_id") 
+    if old_session_id:
+        await redis.delete(f"session:{old_session_id}")
 
     session_date = {
         "user_id": str(existing_user.id),
     }
 
-    await redis.set(
-        f"session:{session_id}",
-        json.dumps(session_date),
-        ex=SESSION_TTL
-    )
-
-    response.set_cookie(
-        key="session_id",
-        value=session_id,
-        httponly=True,
-        secure=not DEBUG,
-        samesite="lax",
-        max_age=SESSION_TTL,
-        path="/",
-    )
+    await create_session(
+        str(existing_user.id), 
+        session_date,
+        response,
+        redis
+        )
 
     return existing_user
 
@@ -120,3 +130,24 @@ async def register_user_service(
         raise ServiceException("Ошибка в работе сервера")
 
     return new_user
+
+
+async def logout_user_server(
+    request: Request,
+    response: Response,
+    redis: Redis,
+):
+    session_id = request.cookies.get("session_id") 
+    
+    if session_id:
+        await redis.delete(f"session:{session_id}")
+
+    response.delete_cookie(
+        key="session_id",
+        path="/",
+        httponly=True,
+        secure=not DEBUG,
+        samesite="lax",
+    )
+
+    return {"message": "Logged out successfully"}

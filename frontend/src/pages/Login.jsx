@@ -10,7 +10,7 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  async function handleLogin({ login, password }) {
+  async function handleLogin({ login, password }) { // TODO Обработка ошибок разных сделать
     setError(null)
     setLoading(true)
     try {

@@ -4,9 +4,11 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from settings.setting import DEBUG, HOST, PORT, DOMAIN_NAME
+from settings.pathes import BASE_DIR
 from middleware.middleware import setup_middleware
 
 from api.router import router as api_router
+from api.exceptions import set_exc_handlers
 
 from redis_client.redis_client import init_redis_pool, close_resis_pool, check_connection
 from database.first_init import first_init
@@ -37,8 +39,9 @@ app = FastAPI(
 
 setup_middleware(app) 
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=f"{BASE_DIR}/static"), name="static")
 
+set_exc_handlers(app)
 app.include_router(api_router)
 
 

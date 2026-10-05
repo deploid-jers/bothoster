@@ -17,7 +17,7 @@ from database.connection import get_db
 from database.models.users import Users
 from core.security import hash_password, verify_password
 from core.sessions import generate_session
-from api.dependencies import get_current_user
+from api.dependencies import get_current_user, rate_limit_by_ip
 from services.auth import *
 from settings.setting import DEBUG, SESSION_TTL
 
@@ -25,44 +25,30 @@ from settings.setting import DEBUG, SESSION_TTL
 router = APIRouter(prefix="/v1/auth", tags=['API Auth'])
 
 
-@router.post("/registration", status_code=status.HTTP_201_CREATED)
+@router.post("/registration", status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit_by_ip("register", 20, 900))])
 async def registration_user(
     data: RegistrationRequest, 
     db: AsyncSession = Depends(get_db)
     ):
 
-    try: # TODO Сделать RegisterResponse
-        result = await register_user_service(data.username, data.email, data.password, db)
-        return {"status": result is not None, "data": result}
-
-    except UserAlreadyExistsException as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=e.message
-        )
-
-    except ServiceException as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=e.message
-        )
+     # TODO Сделать RegisterResponse
+    result = await register_user_service(data.username, data.email, data.password, db)
+    return {"status": result is not None, "data": result}
 
 
-@router.post("/login", response_model=LoginResponse, status_code=200)
+
+@router.post("/login", response_model=LoginResponse, status_code=200, dependencies=[Depends(rate_limit_by_ip("login", 20, 9020))])
 async def login_user(
     data: LoginRequest,
+    request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    redis: Redis = Depends(get_redis) # Добавить RateLimit 
+    redis: Redis = Depends(get_redis)
 ):
-    try: # TODO Добавить get_current_user на случай если пользователь уже залогинен
-        user = await login_user_service(data.login, data.password, response, db, redis)
-        return LoginResponse(username=user.username, email=user.email)
-    except InvalidDataForLoginException as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=e.message
-        )
+
+    user = await login_user_service(data.login, data.password, response, db, redis, request)
+    return LoginResponse(username=user.username, email=user.email)
+
 
 
 @router.post("/logout")
@@ -70,21 +56,12 @@ async def logout(
     request: Request,
     response: Response,
     redis: Redis = Depends(get_redis),
+    user: Users = Depends(get_current_user)
 ):
-    session_id = request.cookies.get("session_id")
 
-    if session_id:
-        await redis.delete(f"session:{session_id}")
+    result = await logout_user_server(request, response, redis)
 
-    response.delete_cookie(
-        key="session_id",
-        path="/",
-        httponly=True,
-        secure=not DEBUG,
-        samesite="lax",
-    )
-
-    return {"message": "Logged out successfully"}
+    return result
 
 
 @router.get("/me", response_model=MeResponse, status_code=200)
@@ -98,18 +75,12 @@ async def verify_email(data: VeriryEmailRequest, db = Depends(get_db)):
     existing_user = await auth_by_username_or_email(db, email)
 
     if existing_user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid user"
-        )
+        raise NotFoundException("Invalid user")
 
     # TODO Здесь будет генерировать токен, и сохранять его в Redis под verify-token:{token}:user_id
 
     result = await send_verify_mail(existing_user.email)
     if result is None or result is False:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Server error"
-        )
+        raise ServerBadGetwayException("Ошибка при работе с сервисом по отправке mail")
 
     return {"status": True, "message": "Письмо на почту отправлено"}
