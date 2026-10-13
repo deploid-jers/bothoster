@@ -10,7 +10,7 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  async function handleLogin({ login, password }) { // TODO Обработка ошибок разных сделать
+  async function handleLogin({ login, password }) {
     setError(null)
     setLoading(true)
     try {
@@ -21,7 +21,11 @@ export default function Login() {
         body: JSON.stringify({ login, password }),
         skipAuthRedirect: true,
         })
-        if (!res.ok) { setError('Неверный email или пароль'); return }
+        if (!res.ok) { 
+          if (res.status == 401) { setError('Неверный email или пароль'); }
+          else if (res.status == 502) { setError('Произошла ошибка, попробуйте позже!'); }
+          else if (res.status == 429) { setError(`Слишком много запросов. Попробуйте через ${res.headers.get("Retry-After")} сек.`) }
+          return; }
         await refresh()          
         navigate('/profile')
     } catch  {

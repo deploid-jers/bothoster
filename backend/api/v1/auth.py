@@ -24,6 +24,12 @@ from settings.setting import DEBUG, SESSION_TTL
 
 router = APIRouter(prefix="/v1/auth", tags=['API Auth'])
 
+@router.get("/me", status_code=status.HTTP_200_OK)
+async def me_func(
+    user: Users = Depends(get_current_user)
+):
+    return {"auth": 'ok'}
+
 
 @router.post("/registration", status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit_by_ip("register", 20, 900))])
 async def registration_user(
@@ -47,7 +53,7 @@ async def login_user(
 ):
 
     user = await login_user_service(data.login, data.password, response, db, redis, request)
-    return LoginResponse(username=user.username, email=user.email)
+    return LoginResponse(username=user.username, email=user.email, is_verified=user.is_verified)
 
 
 
@@ -59,28 +65,19 @@ async def logout(
     user: Users = Depends(get_current_user)
 ):
 
-    result = await logout_user_server(request, response, redis)
+    result = await logout_user_server(user, request, response, redis)
 
     return result
 
 
-@router.get("/me", response_model=MeResponse, status_code=200)
-async def me(user: Users = Depends(get_current_user)):
-    return {"username": user.username, "email": user.email}
+@router.post("/logout_all") # TODO Сделать Response model
+async def logout(
+    request: Request,
+    response: Response,
+    redis: Redis = Depends(get_redis),
+    user: Users = Depends(get_current_user)
+):
 
+    result = await full_logout_user_server(user, request, response, redis)
 
-@router.post("/verify-email", response_model=None, status_code=200)
-async def verify_email(data: VeriryEmailRequest, db = Depends(get_db)):
-    email = str(data.email).strip()
-    existing_user = await auth_by_username_or_email(db, email)
-
-    if existing_user is None:
-        raise NotFoundException("Invalid user")
-
-    # TODO Здесь будет генерировать токен, и сохранять его в Redis под verify-token:{token}:user_id
-
-    result = await send_verify_mail(existing_user.email)
-    if result is None or result is False:
-        raise ServerBadGetwayException("Ошибка при работе с сервисом по отправке mail")
-
-    return {"status": True, "message": "Письмо на почту отправлено"}
+    return result

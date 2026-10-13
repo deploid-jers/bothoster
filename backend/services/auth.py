@@ -15,7 +15,7 @@ from core.exceptions import *
 from schemas.auth import *
 from database.models.users import Users
 from core.security import hash_password, verify_password, DUMMY_HASH
-from core.sessions import generate_session, create_session
+from core.sessions import generate_session, create_session, get_session_from_req, destroy_all_sessions, destroy_session
 from settings.setting import SESSION_TTL, DEBUG
 
 async def auth_by_username_or_email(db, data):
@@ -31,27 +31,6 @@ async def auth_by_username_or_email(db, data):
     return user
 
 
-async def send_verify_mail(email):
-    try:
-        message = MessageSchema(
-            subject="Subject",
-            recipients=[email],
-            body="Body",
-            subtype=MessageType.html
-        )
-
-        fm = FastMail(conf)
-
-        result = await fm.send_message(message=message)
-
-        if result is None:
-            return True
-        return True
-    except:
-        raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Server error"
-                )
 
 LOGIN_LIMIT_PER_USER = 10
 LOGIN_WINDOW_PER_USER = 600
@@ -133,21 +112,28 @@ async def register_user_service(
 
 
 async def logout_user_server(
+    user: Users,
     request: Request,
     response: Response,
     redis: Redis,
 ):
-    session_id = request.cookies.get("session_id") 
+    session_id = await get_session_from_req(request)
     
     if session_id:
-        await redis.delete(f"session:{session_id}")
-
-    response.delete_cookie(
-        key="session_id",
-        path="/",
-        httponly=True,
-        secure=not DEBUG,
-        samesite="lax",
-    )
+        await destroy_session(session_id, user.id, redis, response)
 
     return {"message": "Logged out successfully"}
+
+
+async def full_logout_user_server(
+    user: Users,
+    request: Request,
+    response: Response,
+    redis: Redis,
+):
+    session_id = await get_session_from_req(request)
+    
+    if session_id:
+        await destroy_all_sessions(user.id, redis, session_id)
+
+    return {"message": "Full logged out successfully"}

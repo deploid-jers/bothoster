@@ -51,7 +51,7 @@ def setup_middleware(app: FastAPI):
         try:
             response = await call_next(request)
         except Exception:
-            logging.exception(
+            logger.exception(
                 "Unhandled error | request_id=%s",
                 request_id
             )

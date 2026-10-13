@@ -6,6 +6,7 @@ import Register from './pages/Register.jsx'
 import Profile from './pages/Profile.jsx'
 import NotFound from './pages/NotFound.jsx'
 import GuestRoute from './auth/GuestRoute.jsx'
+import VerifyEmail from './pages/VerifyEmail.jsx'
 
 import ProtectedRoute from './auth/ProtectedRoute.jsx'
 
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/profile" element={<Profile />} />
           </Route> 
 
+          <Route path="/verify" element={<VerifyEmail />} />
           <Route path="*" element={<NotFound />} />
 
         </Routes>

@@ -18,8 +18,13 @@ DOMAIN_NAME = os.getenv("DOMAIN_NAME") or "myproject"
 HOST = os.getenv("HOST") or "0.0.0.0"
 PORT = int(os.getenv("PORT")) or 8000
 
+FRONTEND_HOST = os.getenv("FRONTEND_HOST")
+FRONTEND_PORT = os.getenv("FRONTEND_PORT")
+FRONTEND_URL = f"http://{FRONTEND_HOST}:{FRONTEND_PORT}"
+
 
 SESSION_TTL = 60 * 60
+VERIFY_EMAIL_TTL = 60 * 5
 
 # ==== REDIS
 REDIS_HOST = os.getenv("REDIS_HOST")
@@ -38,15 +43,15 @@ ALLOWED_HOSTS = [
 ]
 
 
-# ========= Конфиг для Yandex рассылки =====
+# ========= Конфиг для Email рассылки =====
 conf = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
     MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
     MAIL_FROM=os.getenv("MAIL_FROM"),
-    MAIL_PORT=465,
-    MAIL_SERVER="smtp.yandex.ru",
-    MAIL_STARTTLS=False, 
-    MAIL_SSL_TLS=True,    
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
+    MAIL_PORT=os.getenv("MAIL_PORT"),
+    MAIL_SERVER=os.getenv("MAIL_SERVER"),
+    MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS"),    
+    MAIL_STARTTLS=os.getenv("MAIL_STARTTLS"), 
+    USE_CREDENTIALS=os.getenv("USE_CREDENTIALS"),
+    VALIDATE_CERTS=os.getenv("VALIDATE_CERTS")
 )

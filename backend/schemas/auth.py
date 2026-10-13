@@ -20,8 +20,10 @@ class VeriryEmailRequest(BaseModel):
 class LoginResponse(BaseModel):
     username: str
     email: str
+    is_verified: bool
 
 class MeResponse(BaseModel):
     username: str
     email: str
+    is_verified: bool
 

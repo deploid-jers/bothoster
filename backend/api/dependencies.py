@@ -6,6 +6,7 @@ import json
 
 
 from redis_client.redis_client import get_redis
+from core.sessions import get_session_from_req
 from database.connection import get_db
 from database.models.users import Users
 from core.exceptions import RateLimitExceeded, ServerBadGetwayException, NotFoundException, UnauthorizedException
@@ -15,7 +16,7 @@ async def get_current_user(
         redis: aioredis.Redis = Depends(get_redis),
         db: AsyncSession = Depends(get_db)
     ):
-    session_id = request.cookies.get("session_id")
+    session_id = await get_session_from_req(request)
 
     if not session_id:
         raise UnauthorizedException("Not authentificated")
